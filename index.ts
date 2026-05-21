@@ -11,7 +11,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { Key, matchesKey, truncateToWidth } from "@earendil-works/pi-tui";
+import { truncateToWidth } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 
 // ── Extension directory (ESM-safe __dirname equivalent) ──
@@ -81,7 +81,6 @@ const AGENT_MODELS: Record<string, string> = {
 };
 
 let state: SomonnoyState | null = null;
-let dashboardWidget: (() => void) | null = null;
 
 // ═══════════════════════════════════════════
 // Agent Configs
@@ -423,64 +422,6 @@ function clearDashboard(ctx: ExtensionContext): void {
 }
 
 // ═══════════════════════════════════════════
-// TUI Dashboard Overlay
-// ═══════════════════════════════════════════
-
-class SomonnoyDashboard {
-  private state: SomonnoyState;
-
-  constructor(state: SomonnoyState) {
-    this.state = state;
-  }
-
-  handleInput(data: string): void {
-    if (matchesKey(data, Key.escape) || matchesKey(data, "q")) {
-      // Handled externally via onClose
-    }
-  }
-
-  render(width: number): string[] {
-    const s = this.state;
-    const lines: string[] = [];
-    const t = (c: string, s: string) => `\x1b[${c}m${s}\x1b[0m`;
-
-    lines.push(truncateToWidth(t("1;36", `╔══ pi-somonnoy Dashboard ══ ${s.projectName} ══╗`), width));
-
-    // Phase + progress
-    const pct = s.totalAgents > 0 ? Math.round((s.completedAgents / s.totalAgents) * 100) : 0;
-    lines.push(truncateToWidth(`  Phase: ${t("1;33", s.phase)}  |  ${s.completedAgents}/${s.totalAgents} tasks  |  ${pct}%`, width));
-
-    // Progress bar
-    const barW = Math.min(width - 4, 50);
-    const filled = Math.round((pct / 100) * barW);
-    lines.push(truncateToWidth(`  ${t("1;32", "█".repeat(filled))}${t("2;37", "░".repeat(barW - filled))}`, width));
-
-    lines.push(truncateToWidth(t("2;37", "─".repeat(width)), width));
-
-    // Tiers
-    for (const tier of s.tiers) {
-      const icon = tier.status === "done" ? "✅" : tier.status === "failed" ? "❌" : tier.status === "pending" ? "  " : "🔄";
-      lines.push(truncateToWidth(` ${icon} ${t("1;36", tier.tier)} — ${tier.status}`, width));
-
-      for (const a of tier.agents) {
-        const aIcon = a.status === "done" ? "✅" : a.status === "failed" ? "❌" : a.status === "running" ? "🔄" : "  ";
-        const dur = a.result ? `(${(a.result.duration / 1000).toFixed(1)}s)` : "";
-        const task = a.task.length > 35 ? a.task.slice(0, 35) + "..." : a.task;
-        lines.push(truncateToWidth(`   ${aIcon} ${a.agent.padEnd(12)} ${t("2;37", task)} ${dur}`, width));
-      }
-    }
-
-    lines.push(truncateToWidth(t("2;37", "─".repeat(width)), width));
-    lines.push(truncateToWidth(`  ${t("2;37", "esc/q to close")}  |  ${t("2;37", "STATUS.md for full log")}`, width));
-    lines.push(truncateToWidth(t("1;36", "╚" + "═".repeat(width - 2) + "╝"), width));
-
-    return lines;
-  }
-
-  invalidate(): void {}
-}
-
-// ═══════════════════════════════════════════
 // Orchestrator Pipeline
 // ═══════════════════════════════════════════
 
@@ -498,7 +439,7 @@ async function runOrchestrator(
     phase: "init",
     tiers: [],
     startedAt: Date.now(),
-    totalAgents: 0,
+    totalAgents: 3, // PRD + Design + Plan phases; updated when tiers parsed
     completedAgents: 0,
     failedAgents: 0,
   };
@@ -516,8 +457,10 @@ async function runOrchestrator(
       state.failedAgents++;
       state.phase = "failed";
       updateDashboard(ctx);
+      ctx.ui.notify("🐘 PRD phase failed", "error");
       return;
     }
+    ctx.ui.notify("🐘 PRD complete → PRD.md", "success");
 
     // Phase 2: Brainstorm + Design
     state.phase = "brainstorm";
@@ -530,8 +473,10 @@ async function runOrchestrator(
       state.failedAgents++;
       state.phase = "failed";
       updateDashboard(ctx);
+      ctx.ui.notify("🐘 Design phase failed", "error");
       return;
     }
+    ctx.ui.notify("🐘 Design complete → DESIGN.md", "success");
 
     // Phase 3: Plan — produce task specs and Mermaid diagram
     state.phase = "plan";
@@ -544,8 +489,10 @@ async function runOrchestrator(
       state.failedAgents++;
       state.phase = "failed";
       updateDashboard(ctx);
+      ctx.ui.notify("🐘 Plan phase failed", "error");
       return;
     }
+    ctx.ui.notify(`🐘 Plan complete → PLAN.md (${state.tiers.length} tiers)`, "success");
 
     // Phase 4: Implement — parse PLAN.md for tiers and tasks
     state.phase = "implement";
@@ -809,26 +756,33 @@ export default function (pi: ExtensionAPI) {
 
   // ── /somonnoy-dashboard command ──
   pi.registerCommand("somonnoy-dashboard", {
-    description: "Show pi-somonnoy agent dashboard",
+    description: "Show pi-somonnoy pipeline status",
     handler: async (_args, ctx) => {
       if (!state) {
         ctx.ui.notify("No active pi-somonnoy pipeline. Start one with /somonnoy", "info");
         return;
       }
 
-      await ctx.ui.custom((_tui, theme, _kb, done) => {
-        const dash = new SomonnoyDashboard(state!);
+      const s = state;
+      const pct = s.totalAgents > 0 ? Math.round((s.completedAgents / s.totalAgents) * 100) : 0;
+      const lines: string[] = [
+        `## 🐘 pi-somonnoy: ${s.projectName}`,
+        `**Phase:** ${s.phase}  |  **Progress:** ${s.completedAgents}/${s.totalAgents} (${pct}%)  |  **Failed:** ${s.failedAgents}`,
+        "",
+        "### Tiers",
+      ];
+      for (const tier of s.tiers) {
+        const icon = tier.status === "done" ? "✅" : tier.status === "failed" ? "❌" : tier.status === "pending" ? "⬜" : "🔄";
+        lines.push(`${icon} **${tier.tier}** — ${tier.status}`);
+        for (const a of tier.agents) {
+          const aIcon = a.status === "done" ? "✅" : a.status === "failed" ? "❌" : a.status === "running" ? "🔄" : "⬜";
+          const dur = a.result ? ` (${(a.result.duration / 1000).toFixed(1)}s)` : "";
+          lines.push(`  ${aIcon} ${a.agent} — ${a.task.slice(0, 50)}${dur}`);
+        }
+      }
+      lines.push("", `*Full log: \`${STATUS_FILE}\`*`);
 
-        return {
-          render: (w: number) => dash.render(w),
-          invalidate: () => dash.invalidate(),
-          handleInput: (data: string) => {
-            if (matchesKey(data, Key.escape) || data === "q") {
-              done(undefined);
-            }
-          },
-        };
-      });
+      pi.sendMessage({ customType: "somonnoy-status", content: lines.join("\n"), display: true }, { triggerTurn: false });
     },
   });
 
@@ -1021,6 +975,5 @@ export default function (pi: ExtensionAPI) {
   // ── Session shutdown: cleanup ──
   pi.on("session_shutdown", async () => {
     state = null;
-    dashboardWidget = null;
   });
 }

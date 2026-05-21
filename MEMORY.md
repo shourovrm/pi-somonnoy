@@ -39,6 +39,12 @@ Fixed: use `path.dirname(fileURLToPath(import.meta.url))` → `EXT_DIR`. All ski
 ### Model IDs need provider prefix (`opencode-go/`)
 `pi --model` expects `provider/model-id`. Bare names like `glm-5.1` resolve to wrong provider (`opencode` instead of `opencode-go`) → API key missing → crash. All `AGENT_MODELS` and `DEFAULT_MODEL` use full `opencode-go/*` format.
 
+### `totalAgents` must be initialized before first agent runs
+Previously `totalAgents: 0` at init. After Phase 1 PRD, `completedAgents: 1` with `totalAgents: 0` → shows "1/0" progress. Fix: initialize to `3` (PRD + Design + Plan phases), update after tier parsing.
+
+### TUI dashboard overlay blocks chat view
+`SomonnoyDashboard` class with `ctx.ui.custom()` created a full-screen overlay that hid model thinking and chat output. Removed. Progress now shown via `ctx.ui.setWidget()` (below editor) + `ctx.ui.notify()` toasts. `/somonnoy-dashboard` outputs markdown text to chat. Matches superpowers-plus pattern.
+
 ### `checkBinary()` is optimistic
 Spawns `which` but doesn't wait for exit code. Returns true if spawn doesn't throw. Fast enough for capability check but not rigorous. Acceptable — capability flags are informational, agents degrade gracefully anyway.
 
