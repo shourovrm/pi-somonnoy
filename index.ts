@@ -5,7 +5,7 @@
  * Spawns specialized sub-agents via pi --mode json for isolated execution.
  */
 
-import { spawn } from "node:child_process";
+import { execSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -615,6 +615,14 @@ async function runOrchestrator(
 
       tier.status = testerAgent.status === "done" && reviewerAgent.status === "done" ? "done" : "failed";
       updateDashboard(ctx);
+
+      // Auto-commit: gate on both review + test passing (Point D)
+      if (tier.status === "done") {
+        const commitMsg = commitTier(tier.tier, cwd);
+        if (commitMsg) {
+          ctx.ui.notify(`📦 Committed: ${commitMsg}`, "info");
+        }
+      }
     }
 
     state.phase = state.tiers.every((t) => t.status === "done") ? "done" : "review";
@@ -664,6 +672,23 @@ function parseTiersFromPlan(plan: string): TierState[] {
     }
   }
   return tiers;
+}
+
+// ═══════════════════════════════════════════
+// Git Auto-Commit
+// ═══════════════════════════════════════════
+
+function commitTier(tierName: string, cwd: string): string | null {
+  const slug = tierName.replace(/\s+/g, "-").toLowerCase();
+  const msg = `feat(${slug}): implement ${tierName} tier`;
+  try {
+    execSync("git add .", { cwd, stdio: "pipe", timeout: 10_000 });
+    execSync(`git commit -m "${msg}"`, { cwd, stdio: "pipe", timeout: 10_000 });
+    return msg;
+  } catch {
+    // Nothing to commit or git unavailable — not fatal
+    return null;
+  }
 }
 
 // ═══════════════════════════════════════════

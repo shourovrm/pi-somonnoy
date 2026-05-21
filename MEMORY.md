@@ -48,7 +48,19 @@ Expects `## Tier: name` and `- **File:** \`path\` - desc` format. If Planner out
 ### Missing spawn tools
 `somonnoy_spawn_frontend` and `somonnoy_spawn_security` not yet registered as tools. Pipeline uses them indirectly through tier flow but LLM can't call them directly.
 
+### Git auto-commit per tier (Point D gate)
+After both Reviewer and Tester pass for a tier, extension runs:
+```
+git add . && git commit -m "feat(<tier-slug>): implement <tier> tier"
+```
+- Uses `execSync` with 10s timeout, `|| true` semantics (commit failure is non-fatal)
+- Tier name slugified for conventional commit scope
+- Gate: review pass AND test pass — safest commit point, no untested code committed
+- No planning-phase commit (PRD/DESIGN/PLAN artifacts committed with first tier or at pipeline end)
+- No branch management or tagging — that belongs in a wrapper/CI layer, not in the pipeline
+
 ## Open Questions
+- Should planning artifacts get their own commit before implementation starts?
 - Should MEMORY.md rolling window be configurable? (currently 10 entries)
 - Should agent timeouts be configurable per project?
 - How to handle tier-level frontend tasks (integrated into Coder or separate Frontend agent)?
