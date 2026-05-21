@@ -48,6 +48,12 @@ Expects `## Tier: name` and `- **File:** \`path\` - desc` format. If Planner out
 ### Missing spawn tools
 `somonnoy_spawn_frontend` and `somonnoy_spawn_security` not yet registered as tools. Pipeline uses them indirectly through tier flow but LLM can't call them directly.
 
+### Frontend agent auto-routing
+Coding phase detects UI files via `isUiFilePath()` — checks file extension (.tsx, .jsx, .css, .vue, .svelte, etc.) and path patterns (components/, pages/, views/, layouts/). UI files routed to `spawnPiAgent("frontend", ...)` instead of `"coder"`. Agent type updated in `agent.agent` for correct STATUS.md display. Integrator's file list updated to include both coder + frontend outputs.
+
+### Security agent in pipeline
+Security scan runs after integration, before review (read-only phase). Spawns `"security"` agent per tier. Tier status set to `"scanning"` during this phase. Added to `TierState` union type. Runs Semgrep + Trufflehog if binaries available; gracefully skips if not.
+
 ### Git auto-commit per tier (Point D gate)
 After both Reviewer and Tester pass for a tier, extension runs:
 ```

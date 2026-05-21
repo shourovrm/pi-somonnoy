@@ -17,8 +17,8 @@
 | Integrator skill | `skills/somonnoy-integrator/SKILL.md` | ✅ Done | 25 lines, single-writer pattern |
 | Reviewer skill | `skills/somonnoy-reviewer/SKILL.md` | ✅ Done | 33 lines, JSON report format |
 | Tester skill | `skills/somonnoy-tester/SKILL.md` | ✅ Done | 35 lines, JSON report format |
-| Frontend skill | `skills/somonnoy-frontend/SKILL.md` | ✅ Done | 25 lines, Playwright degradation |
-| Security skill | `skills/somonnoy-security/SKILL.md` | ✅ Done | 33 lines, Semgrep/Trufflehog degradation |
+| Frontend skill | `skills/somonnoy-frontend/SKILL.md` | ✅ Done | 25 lines, Playwright degradation, wired into pipeline |
+| Security skill | `skills/somonnoy-security/SKILL.md` | ✅ Done | 33 lines, Semgrep/Trufflehog degradation, wired into pipeline |
 | MEMORY.md | `MEMORY.md` | ✅ Updated | Architecture decisions + gotchas + git strategy |
 
 ## Commands
@@ -38,11 +38,16 @@
 | `somonnoy_spawn_scout` | ✅ Registered |
 | `somonnoy_spawn_coder` | ✅ Registered |
 | `somonnoy_spawn_reviewer` | ✅ Registered |
+| `somonnoy_spawn_frontend` | ✅ Registered |
+| `somonnoy_spawn_security` | ✅ Registered |
 | `somonnoy_spawn_tester` | ✅ Registered |
 
 ## Pending / TODO
 
 - [x] Tier-level auto-commit (post review+test gate)
+- [x] Register somonnoy_spawn_frontend + somonnoy_spawn_security tools
+- [x] Wire frontend agent into pipeline (UI file detection → route to frontend)
+- [x] Wire security agent into pipeline (scanning phase after integration)
 - [ ] Integration test: run `/somonnoy "build a simple CLI tool"` end-to-end
 - [ ] Verify prompt.md → SKILL.md transfer completeness
 - [ ] Test MCP capability flag detection (sequential-thinking, playwright, context7)

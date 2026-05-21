@@ -37,7 +37,7 @@ interface AgentResult {
 
 interface TierState {
   tier: string;
-  status: "pending" | "planning" | "coding" | "integrating" | "reviewing" | "testing" | "done" | "failed";
+  status: "pending" | "planning" | "coding" | "integrating" | "scanning" | "reviewing" | "testing" | "done" | "failed";
   agents: AgentRunState[];
 }
 
@@ -536,7 +536,7 @@ async function runOrchestrator(
     try { planContent = fs.readFileSync(path.join(cwd, "PLAN.md"), "utf-8"); } catch {}
     const tiers = parseTiersFromPlan(planContent);
     state.tiers = tiers;
-    state.totalAgents = 3 + tiers.reduce((sum, t) => sum + t.agents.length, 0); // 3 plan phases + all tier agents
+    state.totalAgents = 3 + tiers.reduce((sum, t) => sum + t.agents.length + 4, 0); // 3 plan phases + coders + integrator + security + reviewer + tester per tier
     updateDashboard(ctx);
 
     for (const tier of tiers) {
@@ -548,11 +548,19 @@ async function runOrchestrator(
 
       for (const agent of tier.agents) {
         if (agent.agent !== "coder") continue;
+
+        // Route UI files to frontend agent, backend files to coder
+        const useFrontend = isUiFilePath(agent.id);
+        const agentType = useFrontend ? "frontend" : "coder";
+        agent.agent = agentType; // update for STATUS.md display
         agent.status = "running";
         updateDashboard(ctx);
-        agent.result = await spawnPiAgent("coder",
-          `# Coder Task\n\nTier: ${tier.tier}\nFile: ${agent.id}\nTask: ${agent.task}\n\nWrite code to ${agent.id}. Follow KISS, Unix philosophy. Max code reuse. Compile check after writing.`,
-          cwd, model, signal);
+
+        const taskPrompt = useFrontend
+          ? `# Frontend Task\n\nTier: ${tier.tier}\nFile: ${agent.id}\nTask: ${agent.task}\n\nWrite UI code to ${agent.id}. Prioritize perceived performance, minimal cognitive load, clean visual hierarchy. Use frontend-design skill. Take screenshot if Playwright available.`
+          : `# Coder Task\n\nTier: ${tier.tier}\nFile: ${agent.id}\nTask: ${agent.task}\n\nWrite code to ${agent.id}. Follow KISS, Unix philosophy. Max code reuse. Compile check after writing.`;
+
+        agent.result = await spawnPiAgent(agentType, taskPrompt, cwd, model, signal);
         agent.status = agent.result.exitCode === 0 ? "done" : "failed";
         state.completedAgents++;
         if (agent.result.exitCode !== 0) state.failedAgents++;
@@ -569,12 +577,31 @@ async function runOrchestrator(
       };
       tier.agents.push(integratorAgent);
       updateDashboard(ctx);
+      const codeFiles = tier.agents.filter(a => a.agent === "coder" || a.agent === "frontend");
       integratorAgent.result = await spawnPiAgent("integrator",
-        `# Integrator Task\n\nTier: ${tier.tier}\nAssemble all coder outputs for this tier. Run build check (tsc --noEmit or equivalent). Flag code duplication. Write status report to ${cwd}/reports/integrator-${tier.tier}.json.\n\nFiles to integrate:\n${tier.agents.filter(a => a.agent === "coder").map(a => `- ${a.id}`).join("\n")}`,
+        `# Integrator Task\n\nTier: ${tier.tier}\nAssemble all coder + frontend outputs for this tier. Run build check (tsc --noEmit or equivalent). Flag code duplication. Write status report to ${cwd}/reports/integrator-${tier.tier}.json.\n\nFiles to integrate:\n${codeFiles.map(a => `- ${a.id}`).join("\n")}`,
         cwd, model, signal);
       integratorAgent.status = integratorAgent.result.exitCode === 0 ? "done" : "failed";
       state.completedAgents++;
       if (integratorAgent.result.exitCode !== 0) state.failedAgents++;
+      updateDashboard(ctx);
+
+      // Security scan (read-only, after integration)
+      tier.status = "scanning";
+      const securityAgent: AgentRunState = {
+        id: `security-${tier.tier}`,
+        agent: "security",
+        task: `Security scan: ${tier.tier}`,
+        status: "running",
+      };
+      tier.agents.push(securityAgent);
+      updateDashboard(ctx);
+      securityAgent.result = await spawnPiAgent("security",
+        `# Security Scan\n\nTier: ${tier.tier}\nScan integrated code in src/ for vulnerabilities, exposed secrets, auth flaws. Run Semgrep + Trufflehog if available. Write structured JSON report to ${cwd}/reports/security-${tier.tier}.json.`,
+        cwd, model, signal);
+      securityAgent.status = securityAgent.result.exitCode === 0 ? "done" : "failed";
+      state.completedAgents++;
+      if (securityAgent.result.exitCode !== 0) state.failedAgents++;
       updateDashboard(ctx);
 
       // Review
@@ -677,6 +704,15 @@ function parseTiersFromPlan(plan: string): TierState[] {
 // ═══════════════════════════════════════════
 // Git Auto-Commit
 // ═══════════════════════════════════════════
+
+function isUiFilePath(filePath: string): boolean {
+  const uiPatterns = [
+    /\.tsx$/i, /\.jsx$/i, /\.css$/i, /\.scss$/i, /\.less$/i,
+    /\.html$/i, /\.svelte$/i, /\.vue$/i,
+    /components?\//i, /pages?\//i, /views?\//i, /layouts?\//i,
+  ];
+  return uiPatterns.some((p) => p.test(filePath));
+}
 
 function commitTier(tierName: string, cwd: string): string | null {
   const slug = tierName.replace(/\s+/g, "-").toLowerCase();
@@ -874,6 +910,45 @@ export default function (pi: ExtensionAPI) {
         onUpdate ? (text) => onUpdate({ content: [{ type: "text", text }] }) : undefined);
       return {
         content: [{ type: "text", text: result.output || "(no test results)" }],
+        details: result,
+      };
+    },
+  });
+
+  // ── somonnoy_spawn_frontend tool ──
+  pi.registerTool({
+    name: "somonnoy_spawn_frontend",
+    label: "Spawn Frontend",
+    description: "Spawn a Frontend Designer agent. Handles UI tasks — slick, fast, intuitive interfaces. Uses frontend-design skill.",
+    parameters: Type.Object({
+      file_path: Type.String({ description: "Path to the UI file to write" }),
+      task: Type.String({ description: "UI implementation task description" }),
+    }),
+    async execute(_toolCallId, params, signal, onUpdate) {
+      const task = `# Frontend Task\n\nFile: ${params.file_path}\nTask: ${params.task}\n\nWrite UI code to ${params.file_path}. Prioritize perceived performance, minimal cognitive load, clean visual hierarchy. Take screenshot if Playwright available.`;
+      const result = await spawnPiAgent("frontend", task, process.cwd(), DEFAULT_MODEL, signal,
+        onUpdate ? (text) => onUpdate({ content: [{ type: "text", text }] }) : undefined);
+      return {
+        content: [{ type: "text", text: result.output || "(no output)" }],
+        details: result,
+      };
+    },
+  });
+
+  // ── somonnoy_spawn_security tool ──
+  pi.registerTool({
+    name: "somonnoy_spawn_security",
+    label: "Spawn Security",
+    description: "Spawn a Security agent. Scans for vulnerabilities (Semgrep), exposed secrets (Trufflehog), and auth flaws. Read-only.",
+    parameters: Type.Object({
+      tier: Type.String({ description: "Tier/module name to scan" }),
+    }),
+    async execute(_toolCallId, params, signal, onUpdate) {
+      const task = `# Security Scan\n\nTier: ${params.tier}\nScan integrated code for vulnerabilities, exposed secrets, auth flaws. Run Semgrep + Trufflehog if available. Write structured JSON report.`;
+      const result = await spawnPiAgent("security", task, process.cwd(), DEFAULT_MODEL, signal,
+        onUpdate ? (text) => onUpdate({ content: [{ type: "text", text }] }) : undefined);
+      return {
+        content: [{ type: "text", text: result.output || "(no findings)" }],
         details: result,
       };
     },
