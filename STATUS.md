@@ -10,15 +10,15 @@
 | Package manifest | `package.json` | ✅ Done | Pi package metadata |
 | Spec (revised) | `prompt.md` | ✅ Done | 11 loopholes addressed, pi-native rewrite |
 | Original spec backup | `prompt.original.md` | ✅ Done | For reference |
-| Orchestrator skill | `skills/somonnoy-orchestrator/SKILL.md` | ✅ Done | 33 lines, caps flag + constraints |
-| Planner skill | `skills/somonnoy-planner/SKILL.md` | ✅ Done | 41 lines, MEMORY.md format, degradation |
-| Scout skill | `skills/somonnoy-scout/SKILL.md` | ✅ Done | 26 lines, degradation paths |
-| Coder skill | `skills/somonnoy-coder/SKILL.md` | ✅ Done | 26 lines, KISS + Unix standards, context7 access |
-| Integrator skill | `skills/somonnoy-integrator/SKILL.md` | ✅ Done | 25 lines, single-writer pattern |
-| Reviewer skill | `skills/somonnoy-reviewer/SKILL.md` | ✅ Done | 33 lines, JSON report format |
-| Tester skill | `skills/somonnoy-tester/SKILL.md` | ✅ Done | 35 lines, JSON report format |
-| Frontend skill | `skills/somonnoy-frontend/SKILL.md` | ✅ Done | 25 lines, Playwright degradation, wired into pipeline, context7 access |
-| Security skill | `skills/somonnoy-security/SKILL.md` | ✅ Done | 33 lines, Semgrep/Trufflehog degradation, wired into pipeline |
+| smn-Orchestrator skill | `skills/somonnoy-orchestrator/SKILL.md` | ✅ Done | 33 lines, caps flag + constraints |
+| smn-Planner skill | `skills/somonnoy-planner/SKILL.md` | ✅ Done | 41 lines, MEMORY.md format, degradation |
+| smn-Scout skill | `skills/somonnoy-scout/SKILL.md` | ✅ Done | 26 lines, degradation paths |
+| smn-Coder skill | `skills/somonnoy-coder/SKILL.md` | ✅ Done | 26 lines, KISS + Unix standards, context7 access |
+| smn-Integrator skill | `skills/somonnoy-integrator/SKILL.md` | ✅ Done | 25 lines, single-writer pattern |
+| smn-Reviewer skill | `skills/somonnoy-reviewer/SKILL.md` | ✅ Done | 33 lines, JSON report format |
+| smn-Tester skill | `skills/somonnoy-tester/SKILL.md` | ✅ Done | 35 lines, JSON report format |
+| smn-Frontend skill | `skills/somonnoy-frontend/SKILL.md` | ✅ Done | 25 lines, Playwright degradation, wired into pipeline, context7 access |
+| smn-Security skill | `skills/somonnoy-security/SKILL.md` | ✅ Done | 33 lines, Semgrep/Trufflehog degradation, wired into pipeline |
 | MEMORY.md | `MEMORY.md` | ✅ Updated | Architecture decisions + gotchas + git strategy |
 
 ## Commands
@@ -58,7 +58,7 @@
 - [ ] Test escalation prompt when replan fails 3x
 - [ ] Test MEMORY.md filtering by agent tag
 - [ ] Add `somonnoy_spawn_frontend` and `somonnoy_spawn_security` tools to index.ts
-- [ ] Test plan parsing (parseTiersFromPlan) with real Planner output
+- [ ] Test plan parsing (parseTiersFromPlan) with real smn-Planner output
 - [ ] Install as pi package and verify /reload discovery
 - [ ] Write caveman-compressed versions of all SKILL.md files
 - [ ] Add `agents/` directory with agent definitions (currently inline)

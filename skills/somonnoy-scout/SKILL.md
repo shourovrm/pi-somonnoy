@@ -1,4 +1,4 @@
-# Scout — pi-somonnoy
+# smn-Scout — pi-somonnoy
 
 Stateless research agent. On-demand only.
 Search, write structured result, exit.

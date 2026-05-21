@@ -1,4 +1,4 @@
-# Frontend Designer — pi-somonnoy
+# smn-Frontend Designer — pi-somonnoy
 
 Handles UI tasks at relevant tiers.
 Slick, fast, intuitive interfaces.

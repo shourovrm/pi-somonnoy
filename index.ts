@@ -72,64 +72,64 @@ let dashboardWidget: (() => void) | null = null;
 // ═══════════════════════════════════════════
 
 const AGENT_CONFIGS: Record<string, AgentConfig> = {
-  planner: {
-    name: "planner",
+  "smn-planner": {
+    name: "smn-planner",
     description: "Enforces PRD→Brainstorm→Design→Plan. Produces PRD, design, Mermaid diagram, task specs.",
     tools: ["read", "write", "bash", "grep", "find"],
     skills: ["brainstorming"],
     systemPrompt: "",
     timeout: 600_000,
   },
-  scout: {
-    name: "scout",
+  "smn-scout": {
+    name: "smn-scout",
     description: "Stateless research agent. Searches web/docs, returns structured findings.",
     tools: ["read", "write", "bash", "web_search", "web_fetch"],
     skills: ["brave-search"],
     systemPrompt: "",
     timeout: 120_000,
   },
-  coder: {
-    name: "coder",
+  "smn-coder": {
+    name: "smn-coder",
     description: "Leaf agent. One file per invocation. KISS, Unix philosophy, max reuse.",
     tools: ["read", "write", "edit", "bash", "grep", "context7_get_library_docs"],
     skills: [],
     systemPrompt: "",
     timeout: 300_000,
   },
-  integrator: {
-    name: "integrator",
+  "smn-integrator": {
+    name: "smn-integrator",
     description: "Assembles Coder outputs per tier. Runs build check, flags duplication.",
     tools: ["read", "write", "bash", "grep", "find"],
     skills: [],
     systemPrompt: "",
     timeout: 300_000,
   },
-  reviewer: {
-    name: "reviewer",
+  "smn-reviewer": {
+    name: "smn-reviewer",
     description: "Checks integrated tier output. Enforces contracts, KISS, naming, error handling.",
     tools: ["read", "write", "bash", "grep"],
     skills: ["caveman"],
     systemPrompt: "",
     timeout: 300_000,
   },
-  tester: {
-    name: "tester",
+  "smn-tester": {
+    name: "smn-tester",
     description: "Writes and runs tests per tier. Structured failure reports.",
     tools: ["read", "write", "edit", "bash", "grep"],
     skills: ["caveman"],
     systemPrompt: "",
     timeout: 300_000,
   },
-  frontend: {
-    name: "frontend",
+  "smn-frontend": {
+    name: "smn-frontend",
     description: "Handles UI tasks. Slick, fast, intuitive interfaces.",
     tools: ["read", "write", "edit", "bash", "grep", "context7_get_library_docs"],
     skills: ["frontend-design"],
     systemPrompt: "",
     timeout: 300_000,
   },
-  security: {
-    name: "security",
+  "smn-security": {
+    name: "smn-security",
     description: "Scans for vulnerabilities, auth flaws, exposed secrets. Read-only.",
     tools: ["read", "bash", "grep"],
     skills: [],
@@ -143,7 +143,8 @@ const AGENT_CONFIGS: Record<string, AgentConfig> = {
 // ═══════════════════════════════════════════
 
 function loadSkillFile(agentType: string): string {
-  const skillPath = path.join(__dirname, "skills", `somonnoy-${agentType}`, "SKILL.md");
+  const cleanName = agentType.replace(/^smn-/, "");
+  const skillPath = path.join(__dirname, "skills", `somonnoy-${cleanName}`, "SKILL.md");
   try {
     return fs.readFileSync(skillPath, "utf-8");
   } catch {
@@ -195,17 +196,17 @@ function buildCapabilityFlags(agentType: string): Record<string, boolean> {
   const flags: Record<string, boolean> = {};
 
   switch (agentType) {
-    case "planner":
+    case "smn-planner":
       flags.sequential_thinking_mcp = checkBinary("which mcp-server-sequential-thinking");
       break;
-    case "scout":
+    case "smn-scout":
       flags.brave_search_skill = true; // built-in
       flags.context7_mcp = checkBinary("context7");
       break;
-    case "frontend":
+    case "smn-frontend":
       flags.playwright_mcp = checkBinary("npx");
       break;
-    case "security":
+    case "smn-security":
       flags.semgrep_binary = checkBinary("semgrep");
       flags.trufflehog_binary = checkBinary("trufflehog");
       break;
@@ -490,7 +491,7 @@ async function runOrchestrator(
     // Phase 1: PRD
     state.phase = "prd";
     updateDashboard(ctx);
-    const prdResult = await spawnPiAgent("planner",
+    const prdResult = await spawnPiAgent("smn-planner",
       `# PRD Task\n\nProject: ${projectName}\nDescription: ${projectDesc}\n\nWrite a PRD to ${cwd}/PRD.md. Cover goals, scope, constraints, user flows, success criteria. Be thorough.`,
       cwd, model, signal);
     state.completedAgents++;
@@ -504,7 +505,7 @@ async function runOrchestrator(
     // Phase 2: Brainstorm + Design
     state.phase = "brainstorm";
     updateDashboard(ctx);
-    const designResult = await spawnPiAgent("planner",
+    const designResult = await spawnPiAgent("smn-planner",
       `# Design Task\n\nRead PRD.md. Conduct structured analysis. Write design document to ${cwd}/DESIGN.md. Include architecture decisions, tradeoffs, edge cases. No code.`,
       cwd, model, signal);
     state.completedAgents++;
@@ -518,7 +519,7 @@ async function runOrchestrator(
     // Phase 3: Plan — produce task specs and Mermaid diagram
     state.phase = "plan";
     updateDashboard(ctx);
-    const planResult = await spawnPiAgent("planner",
+    const planResult = await spawnPiAgent("smn-planner",
       `# Plan Task\n\nRead PRD.md and DESIGN.md. Produce:\n1. Full Mermaid diagram → ${cwd}/DIAGRAM.md\n2. Tier breakdown with tasks → ${cwd}/PLAN.md\n3. Per-tier contracts → ${cwd}/contracts/<tier>.json\n\nEach task must specify: file path, interface, algorithm, verification. No TBD sections.`,
       cwd, model, signal);
     state.completedAgents++;
@@ -550,7 +551,7 @@ async function runOrchestrator(
       const deps = scanForDependencies(tier.agents);
       let researchContext = "";
       if (deps.length > 0) {
-        const scoutResult = await spawnPiAgent("scout",
+        const scoutResult = await spawnPiAgent("smn-scout",
           `# Scout Research\n\nTier: ${tier.tier}\nResearch: ${deps.join(", ")}. Find API references, usage examples, gotchas for ${tier.tier} implementation. Write structured report.`,
           cwd, model, signal);
         if (scoutResult.exitCode === 0 && scoutResult.output) {
@@ -561,11 +562,11 @@ async function runOrchestrator(
       }
 
       for (const agent of tier.agents) {
-        if (agent.agent !== "coder") continue;
+        if (agent.agent !== "smn-coder") continue;
 
         // Route UI files to frontend agent, backend files to coder
         const useFrontend = isUiFilePath(agent.id);
-        const agentType = useFrontend ? "frontend" : "coder";
+        const agentType = useFrontend ? "smn-frontend" : "smn-coder";
         agent.agent = agentType; // update for STATUS.md display
         agent.status = "running";
         updateDashboard(ctx);
@@ -585,14 +586,14 @@ async function runOrchestrator(
       tier.status = "integrating";
       const integratorAgent: AgentRunState = {
         id: `integrator-${tier.tier}`,
-        agent: "integrator",
+        agent: "smn-integrator",
         task: `Integrate tier: ${tier.tier}`,
         status: "running",
       };
       tier.agents.push(integratorAgent);
       updateDashboard(ctx);
-      const codeFiles = tier.agents.filter(a => a.agent === "coder" || a.agent === "frontend");
-      integratorAgent.result = await spawnPiAgent("integrator",
+      const codeFiles = tier.agents.filter(a => a.agent === "smn-coder" || a.agent === "smn-frontend");
+      integratorAgent.result = await spawnPiAgent("smn-integrator",
         `# Integrator Task\n\nTier: ${tier.tier}\nAssemble all coder + frontend outputs for this tier. Run build check (tsc --noEmit or equivalent). Flag code duplication. Write status report to ${cwd}/reports/integrator-${tier.tier}.json.\n\nFiles to integrate:\n${codeFiles.map(a => `- ${a.id}`).join("\n")}`,
         cwd, model, signal);
       integratorAgent.status = integratorAgent.result.exitCode === 0 ? "done" : "failed";
@@ -604,13 +605,13 @@ async function runOrchestrator(
       tier.status = "scanning";
       const securityAgent: AgentRunState = {
         id: `security-${tier.tier}`,
-        agent: "security",
+        agent: "smn-security",
         task: `Security scan: ${tier.tier}`,
         status: "running",
       };
       tier.agents.push(securityAgent);
       updateDashboard(ctx);
-      securityAgent.result = await spawnPiAgent("security",
+      securityAgent.result = await spawnPiAgent("smn-security",
         `# Security Scan\n\nTier: ${tier.tier}\nScan integrated code in src/ for vulnerabilities, exposed secrets, auth flaws. Run Semgrep + Trufflehog if available. Write structured JSON report to ${cwd}/reports/security-${tier.tier}.json.`,
         cwd, model, signal);
       securityAgent.status = securityAgent.result.exitCode === 0 ? "done" : "failed";
@@ -622,13 +623,13 @@ async function runOrchestrator(
       tier.status = "reviewing";
       const reviewerAgent: AgentRunState = {
         id: `reviewer-${tier.tier}`,
-        agent: "reviewer",
+        agent: "smn-reviewer",
         task: `Review tier: ${tier.tier}`,
         status: "running",
       };
       tier.agents.push(reviewerAgent);
       updateDashboard(ctx);
-      reviewerAgent.result = await spawnPiAgent("reviewer",
+      reviewerAgent.result = await spawnPiAgent("smn-reviewer",
         `# Reviewer Task\n\nTier: ${tier.tier}\nReview integrated code. Check: interface contracts, error handling, KISS, algorithm efficiency, naming, code reuse.\nWrite structured report to ${cwd}/reports/reviewer-${tier.tier}.json`,
         cwd, model, signal);
       reviewerAgent.status = reviewerAgent.result.exitCode === 0 ? "done" : "failed";
@@ -640,13 +641,13 @@ async function runOrchestrator(
       tier.status = "testing";
       const testerAgent: AgentRunState = {
         id: `tester-${tier.tier}`,
-        agent: "tester",
+        agent: "smn-tester",
         task: `Test tier: ${tier.tier}`,
         status: "running",
       };
       tier.agents.push(testerAgent);
       updateDashboard(ctx);
-      testerAgent.result = await spawnPiAgent("tester",
+      testerAgent.result = await spawnPiAgent("smn-tester",
         `# Tester Task\n\nTier: ${tier.tier}\nWrite and run tests. Check edge cases, error paths.\nWrite structured report to ${cwd}/reports/tester-${tier.tier}.json`,
         cwd, model, signal);
       testerAgent.status = testerAgent.result.exitCode === 0 ? "done" : "failed";
@@ -702,7 +703,7 @@ function parseTiersFromPlan(plan: string): TierState[] {
     while ((taskMatch = taskRegex.exec(tierSection)) !== null) {
       agents.push({
         id: taskMatch[1].trim(),
-        agent: "coder",
+        agent: "smn-coder",
         task: taskMatch[2].trim(),
         status: "pending",
       });
@@ -734,7 +735,7 @@ function scanForDependencies(agents: AgentRunState[]): string[] {
   const depRegex = /(?:uses?|integrate(?:s|d)?\s+(?:with)?|using|leveraging?|library[:\s]+|framework[:\s]+|sdk[:\s]+|api[:\s]+)\s*["']?([A-Z][a-zA-Z0-9.\-_]{2,30}(?:\s+[A-Z][a-zA-Z0-9.\-_]{2,20}){0,2})["']?/gi;
   const deps = new Set<string>();
   for (const agent of agents) {
-    if (agent.agent !== "coder") continue;
+    if (agent.agent !== "smn-coder") continue;
     let match;
     while ((match = depRegex.exec(agent.task)) !== null) {
       deps.add(match[1].trim().toLowerCase());
@@ -862,7 +863,7 @@ export default function (pi: ExtensionAPI) {
       output_file: Type.Optional(Type.String({ description: "Where to write output (e.g., PRD.md, DESIGN.md)" })),
     }),
     async execute(_toolCallId, params, signal, onUpdate) {
-      const result = await spawnPiAgent("planner", params.task, process.cwd(), DEFAULT_MODEL, signal,
+      const result = await spawnPiAgent("smn-planner", params.task, process.cwd(), DEFAULT_MODEL, signal,
         onUpdate ? (text) => onUpdate({ content: [{ type: "text", text }] }) : undefined);
       return {
         content: [{ type: "text", text: result.output || result.error || "(no output)" }],
@@ -880,7 +881,7 @@ export default function (pi: ExtensionAPI) {
       query: Type.String({ description: "Research query or topic" }),
     }),
     async execute(_toolCallId, params, signal, onUpdate) {
-      const result = await spawnPiAgent("scout", `Research: ${params.query}`, process.cwd(), DEFAULT_MODEL, signal,
+      const result = await spawnPiAgent("smn-scout", `Research: ${params.query}`, process.cwd(), DEFAULT_MODEL, signal,
         onUpdate ? (text) => onUpdate({ content: [{ type: "text", text }] }) : undefined);
       return {
         content: [{ type: "text", text: result.output || "(no results)" }],
@@ -900,7 +901,7 @@ export default function (pi: ExtensionAPI) {
     }),
     async execute(_toolCallId, params, signal, onUpdate) {
       const task = `# Coder Task\n\nFile: ${params.file_path}\nTask: ${params.task}\n\nWrite code to ${params.file_path}. Follow KISS, Unix philosophy. Max code reuse. Compile check after writing.`;
-      const result = await spawnPiAgent("coder", task, process.cwd(), DEFAULT_MODEL, signal,
+      const result = await spawnPiAgent("smn-coder", task, process.cwd(), DEFAULT_MODEL, signal,
         onUpdate ? (text) => onUpdate({ content: [{ type: "text", text }] }) : undefined);
       return {
         content: [{ type: "text", text: result.output || result.error || "(no output)" }],
@@ -919,7 +920,7 @@ export default function (pi: ExtensionAPI) {
     }),
     async execute(_toolCallId, params, signal, onUpdate) {
       const task = `# Reviewer Task\n\nTier: ${params.tier}\nReview all code in this tier. Check: interface contracts, error handling, KISS, algorithm efficiency, naming, code reuse.\nWrite structured JSON report.`;
-      const result = await spawnPiAgent("reviewer", task, process.cwd(), DEFAULT_MODEL, signal,
+      const result = await spawnPiAgent("smn-reviewer", task, process.cwd(), DEFAULT_MODEL, signal,
         onUpdate ? (text) => onUpdate({ content: [{ type: "text", text }] }) : undefined);
       return {
         content: [{ type: "text", text: result.output || "(no findings)" }],
@@ -938,7 +939,7 @@ export default function (pi: ExtensionAPI) {
     }),
     async execute(_toolCallId, params, signal, onUpdate) {
       const task = `# Tester Task\n\nTier: ${params.tier}\nWrite and run tests for this tier. Check edge cases, error paths.\nWrite structured JSON report.`;
-      const result = await spawnPiAgent("tester", task, process.cwd(), DEFAULT_MODEL, signal,
+      const result = await spawnPiAgent("smn-tester", task, process.cwd(), DEFAULT_MODEL, signal,
         onUpdate ? (text) => onUpdate({ content: [{ type: "text", text }] }) : undefined);
       return {
         content: [{ type: "text", text: result.output || "(no test results)" }],
@@ -958,7 +959,7 @@ export default function (pi: ExtensionAPI) {
     }),
     async execute(_toolCallId, params, signal, onUpdate) {
       const task = `# Frontend Task\n\nFile: ${params.file_path}\nTask: ${params.task}\n\nWrite UI code to ${params.file_path}. Prioritize perceived performance, minimal cognitive load, clean visual hierarchy. Take screenshot if Playwright available.`;
-      const result = await spawnPiAgent("frontend", task, process.cwd(), DEFAULT_MODEL, signal,
+      const result = await spawnPiAgent("smn-frontend", task, process.cwd(), DEFAULT_MODEL, signal,
         onUpdate ? (text) => onUpdate({ content: [{ type: "text", text }] }) : undefined);
       return {
         content: [{ type: "text", text: result.output || "(no output)" }],
@@ -977,7 +978,7 @@ export default function (pi: ExtensionAPI) {
     }),
     async execute(_toolCallId, params, signal, onUpdate) {
       const task = `# Security Scan\n\nTier: ${params.tier}\nScan integrated code for vulnerabilities, exposed secrets, auth flaws. Run Semgrep + Trufflehog if available. Write structured JSON report.`;
-      const result = await spawnPiAgent("security", task, process.cwd(), DEFAULT_MODEL, signal,
+      const result = await spawnPiAgent("smn-security", task, process.cwd(), DEFAULT_MODEL, signal,
         onUpdate ? (text) => onUpdate({ content: [{ type: "text", text }] }) : undefined);
       return {
         content: [{ type: "text", text: result.output || "(no findings)" }],

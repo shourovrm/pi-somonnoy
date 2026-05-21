@@ -32,33 +32,33 @@ Pipeline runs async. Progress shown in TUI widget below editor. Output: `PRD.md`
 
 | Agent | Job | Tools |
 |-------|-----|-------|
-| Orchestrator | Delegation, STATUS.md | read, write, bash |
-| Planner | PRD, design, plan, MEMORY.md | read, write, bash, grep, find |
-| Scout | Web/docs research (on-demand) | read, write, bash, web_search, web_fetch |
-| Coder | One file per invocation | read, write, edit, bash, grep |
-| Integrator | Assemble tier, build check | read, write, bash, grep, find |
-| Reviewer | Code review, structured report | read, write, bash, grep |
-| Tester | Write + run tests | read, write, edit, bash, grep |
-| Frontend | UI tasks, Playwright verify | read, write, edit, bash, grep |
-| Security | Semgrep, Trufflehog, auth scan | read, bash, grep |
+| smn-Orchestrator | Delegation, STATUS.md | read, write, bash |
+| smn-Planner | PRD, design, plan, MEMORY.md | read, write, bash, grep, find |
+| smn-Scout | Web/docs research (on-demand) | read, write, bash, web_search, web_fetch |
+| smn-Coder | One file per invocation | read, write, edit, bash, grep |
+| smn-Integrator | Assemble tier, build check | read, write, bash, grep, find |
+| smn-Reviewer | Code review, structured report | read, write, bash, grep |
+| smn-Tester | Write + run tests | read, write, edit, bash, grep |
+| smn-Frontend | UI tasks, Playwright verify | read, write, edit, bash, grep |
+| smn-Security | Semgrep, Trufflehog, auth scan | read, bash, grep |
 
 ## Pipeline Flow
 
 ```
 /somonnoy
-  ├─ Planner → PRD.md, DESIGN.md, DIAGRAM.md, PLAN.md
+  ├─ smn-Planner → PRD.md, DESIGN.md, DIAGRAM.md, PLAN.md
   ├─ Per tier:
-  │   ├─ Coders (parallel) → coder_outputs/*.tmp
-  │   ├─ Integrator → src/<tier>/
-  │   ├─ Reviewer → reports/reviewer-<tier>.json
-  │   └─ Tester → reports/tester-<tier>.json
+  │   ├─ smn-Coders (parallel) → coder_outputs/*.tmp
+  │   ├─ smn-Integrator → src/<tier>/
+  │   ├─ smn-Reviewer → reports/reviewer-<tier>.json
+  │   └─ smn-Tester → reports/tester-<tier>.json
   └─ SOMONNOY_SUMMARY.md
 ```
 
 ## Design
 
 - **Isolated subprocesses** — `pi --mode json`, same pattern as built-in subagent
-- **Single-writer per file** — STATUS.md (Orchestrator), MEMORY.md (Planner), tier output (Integrator)
+- **Single-writer per file** — STATUS.md (smn-Orchestrator), MEMORY.md (smn-Planner), tier output (smn-Integrator)
 - **Capability flags** — MCP/binary availability checked at spawn, agents degrade gracefully
 - **MEMORY.md filtering** — Lessons tagged `[coder]`, `[reviewer]`, etc.; injected per-agent
 - **Escalation** — Human prompted with options after 3+ replan failures per tier

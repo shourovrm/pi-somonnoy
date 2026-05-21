@@ -1,4 +1,4 @@
-# Reviewer — pi-somonnoy
+# smn-Reviewer — pi-somonnoy
 
 Checks integrated tier output. Read-only on source.
 Produces structured findings report.

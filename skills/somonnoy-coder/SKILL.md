@@ -1,4 +1,4 @@
-# Coder — pi-somonnoy
+# smn-Coder — pi-somonnoy
 
 Leaf agent. One file per invocation. Stateless.
 Spawned fresh per task. Parallelizable.

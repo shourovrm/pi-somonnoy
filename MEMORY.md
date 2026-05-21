@@ -18,9 +18,9 @@ Single `index.ts` + `skills/` directory. Keeps agent behavior separate from orch
 ### Single-writer file coordination
 Each shared file has exactly one writing agent:
 - STATUS.md → only extension (via updateDashboard)
-- MEMORY.md → only Planner agent
-- Tier output → only Integrator
-- Reports → each Reviewer/Tester writes own file
+- MEMORY.md → only smn-Planner agent
+- Tier output → only smn-Integrator
+- Reports → each smn-Reviewer/smn-Tester writes own file
 No file locking needed.
 
 ### Capability flags at spawn time
@@ -37,9 +37,9 @@ Extension checks MCP/binary availability once per agent spawn, passes `## Availa
 Spawns `which` but doesn't wait for exit code. Returns true if spawn doesn't throw. Fast enough for capability check but not rigorous. Acceptable — capability flags are informational, agents degrade gracefully anyway.
 
 ### `parseTiersFromPlan()` regex is fragile
-Expects `## Tier: name` and `- **File:** \`path\` - desc` format. If Planner outputs different format, parsing breaks and no tiers run. Need to validate against real Planner output or make parsing more flexible.
+Expects `## Tier: name` and `- **File:** \`path\` - desc` format. If smn-Planner outputs different format, parsing breaks and no tiers run. Need to validate against real smn-Planner output or make parsing more flexible.
 
-### `runOrchestrator` is fire-and-forget
+### `runOrchestrator` (smn-orchestrator) is fire-and-forget
 `/somonnoy` command returns immediately, pipeline runs async. Status tracked via widget + STATUS.md. If user navigates away or session ends, pipeline keeps running but dashboard disconnects. State restored on session resume via `session_start` handler.
 
 ### Model locked to claude-sonnet-4-5 default
@@ -48,17 +48,17 @@ Expects `## Tier: name` and `- **File:** \`path\` - desc` format. If Planner out
 ### Missing spawn tools
 `somonnoy_spawn_frontend` and `somonnoy_spawn_security` not yet registered as tools. Pipeline uses them indirectly through tier flow but LLM can't call them directly.
 
-### Frontend agent auto-routing
-Coding phase detects UI files via `isUiFilePath()` — checks file extension (.tsx, .jsx, .css, .vue, .svelte, etc.) and path patterns (components/, pages/, views/, layouts/). UI files routed to `spawnPiAgent("frontend", ...)` instead of `"coder"`. Agent type updated in `agent.agent` for correct STATUS.md display. Integrator's file list updated to include both coder + frontend outputs.
+### smn-Frontend agent auto-routing
+smn-Coding phase detects UI files via `isUiFilePath()` — checks file extension (.tsx, .jsx, .css, .vue, .svelte, etc.) and path patterns (components/, pages/, views/, layouts/). UI files routed to `spawnPiAgent("smn-frontend", ...)` instead of `"smn-coder"`. Agent type updated in `agent.agent` for correct STATUS.md display. smn-Integrator's file list updated to include both coder + frontend outputs.
 
-### Security agent in pipeline
-Security scan runs after integration, before review (read-only phase). Spawns `"security"` agent per tier. Tier status set to `"scanning"` during this phase. Added to `TierState` union type. Runs Semgrep + Trufflehog if binaries available; gracefully skips if not.
+### smn-Security agent in pipeline
+smn-Security scan runs after integration, before review (read-only phase). Spawns `"smn-security"` agent per tier. Tier status set to `"scanning"` during this phase. Added to `TierState` union type. Runs Semgrep + Trufflehog if binaries available; gracefully skips if not.
 
 ### Agent research: context7, not web_search and not callback
-Subprocess agents can't call custom tools (somonnoy_spawn_scout) — only pi-native tools work with `--tools` flag. Coder + frontend get `context7_get_library_docs` (curated library docs, not open web). Scout stays specialized for orchestrator use when MCP-powered research needed. Pre-fetch pattern implemented: `scanForDependencies()` scans task descriptions for "uses X", "integrate with Y", imports — spawns scout before coding phase, injects structured findings (trimmed to 3000 chars) into each agent's task prompt under `## Research Context`. Scout failure is non-fatal — agents proceed with training knowledge only.
+Subprocess agents can't call custom tools (somonnoy_spawn_scout) — only pi-native tools work with `--tools` flag. smn-Coder + frontend get `context7_get_library_docs` (curated library docs, not open web). smn-smn-Scout stays specialized for smn-orchestrator use when MCP-powered research needed. Pre-fetch pattern implemented: `scanForDependencies()` scans task descriptions for "uses X", "integrate with Y", imports — spawns smn-scout before coding phase, injects structured findings (trimmed to 3000 chars) into each agent's task prompt under `## Research Context`. smn-smn-Scout failure is non-fatal — agents proceed with training knowledge only.
 
 ### Git auto-commit per tier (Point D gate)
-After both Reviewer and Tester pass for a tier, extension runs:
+After both smn-Reviewer and smn-Tester pass for a tier, extension runs:
 ```
 git add . && git commit -m "feat(<tier-slug>): implement <tier> tier"
 ```
@@ -72,5 +72,5 @@ git add . && git commit -m "feat(<tier-slug>): implement <tier> tier"
 - Should planning artifacts get their own commit before implementation starts?
 - Should MEMORY.md rolling window be configurable? (currently 10 entries)
 - Should agent timeouts be configurable per project?
-- How to handle tier-level frontend tasks (integrated into Coder or separate Frontend agent)?
+- How to handle tier-level frontend tasks (integrated into smn-Coder or separate smn-Frontend agent)?
 - Should pipeline support parallel tiers (independent modules)?

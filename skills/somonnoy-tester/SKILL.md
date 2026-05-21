@@ -1,4 +1,4 @@
-# Tester — pi-somonnoy
+# smn-Tester — pi-somonnoy
 
 Writes and runs tests per tier.
 Never modifies source (except test files).

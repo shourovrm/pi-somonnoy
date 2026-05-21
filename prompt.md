@@ -28,7 +28,7 @@ pi-somonnoy/
 - Registers `somonnoy_propose` tool so the LLM can suggest orchestration when it detects complex multi-file work
 - Registers agent-spawning tools: `somonnoy_spawn_planner`, `somonnoy_spawn_coder`, `somonnoy_spawn_reviewer`, `somonnoy_spawn_tester`, `somonnoy_spawn_integrator`, `somonnoy_spawn_scout`, `somonnoy_spawn_frontend`, `somonnoy_spawn_security`
 - Each spawn tool creates an in-memory `AgentSession` via pi's SDK with agent-specific system prompt (loaded from the corresponding SKILL.md), tool set, and skills
-- Manages agent lifecycle: spawn, timeout (default 300s for Coder/Reviewer/Tester, 600s for Planner), collect structured output, dispose session
+- Manages agent lifecycle: spawn, timeout (default 300s for **smn-Coder**/**smn-Reviewer**/**smn-Tester**, 600s for **smn-Planner**), collect structured output, dispose session
 - Checks MCP server availability at spawn time, passes capability flags to agent prompt
 - Enforces tier isolation + single-writer file coordination pattern
 - Filters MEMORY.md lessons by agent role, injects into spawn-time system prompt
@@ -39,11 +39,11 @@ pi-somonnoy/
 - Declare required pi-native tools (read, write, edit, bash, grep, find, web_search, web_fetch, etc.)
 - Declare required/optional MCP servers with graceful degradation instructions
 - Declare required/optional pi skills (caveman, frontend-design, brainstorming, etc.)
-- Specify output format (structured JSON report for Reviewer/Tester, code files for Coder, etc.)
+- Specify output format (structured JSON report for **smn-Reviewer**/**smn-Tester**, code files for **smn-Coder**, etc.)
 
 ## Invocation
 
-**Manual:** User types `/somonnoy "build a todo app with React and TypeScript"` — extension spawns Orchestrator agent which drives the full pipeline.
+**Manual:** User types `/somonnoy "build a todo app with React and TypeScript"` — extension spawns **smn-Orchestrator** agent which drives the full pipeline.
 
 **Auto-detection:** The `somonnoy_propose` tool is available to the main LLM. When the LLM detects a request requiring multi-file, multi-module implementation, it can call `somonnoy_propose` to suggest orchestration. The user confirms, and the pipeline starts.
 
@@ -56,16 +56,16 @@ Each phase gates the next. No code is written until a PRD exists and a design ha
 
 **PRD phase:** For every project, a Product Requirements Document is written first, covering goals, scope, constraints, user flows, and success criteria. All subsequent planning derives from the PRD.
 
-**Brainstorming phase:** The Planner conducts a structured Socratic dialogue — reads the codebase, asks targeted clarifying questions (not generic ones), explores options and tradeoffs, and surfaces edge cases before committing to a direction. Output is a design document, not code. No implementation begins until design is approved.
+**Brainstorming phase:** The **smn-Planner** conducts a structured Socratic dialogue — reads the codebase, asks targeted clarifying questions (not generic ones), explores options and tradeoffs, and surfaces edge cases before committing to a direction. Output is a design document, not code. No implementation begins until design is approved.
 
 **Planning phase:** The approved design converts into a multi-level implementation plan: overall architecture → module-level sub-plans → coding-level task specs. Each task is scoped to a single file with exact file path, interface contract, and verification criteria. No TBD sections permitted — all gaps resolved before planning closes.
 
 ## Agents
 
-### Orchestrator
-Top-level controller. Delegates to Planner. Receives tier reports. Makes replanning decisions based on `suggested_action` hints from Reviewer/Tester. Maintains STATUS.md (live project state: tiers complete/in-progress/failed/blocked, updated after every Integrator report). Never writes source code.
+### **smn-Orchestrator**
+Top-level controller. Delegates to **smn-Planner**. Receives tier reports. Makes replanning decisions based on `suggested_action` hints from **smn-Reviewer**/**smn-Tester**. Maintains STATUS.md (live project state: tiers complete/in-progress/failed/blocked, updated after every **smn-Integrator** report). Never writes source code.
 
-**Spawned by:** `/somonnoy` command handler or `somonnoy_propose` tool handler (runs in main session, not a subagent — the Orchestrator IS the extension's command handler context).
+**Spawned by:** `/somonnoy` command handler or `somonnoy_propose` tool handler (runs in main session, not a subagent — the **smn-Orchestrator** IS the extension's command handler context).
 
 **Capabilities:** Uses extension-registered spawn tools (`somonnoy_spawn_*`) to create subagents. Reads/writes contract files and STATUS.md. Escalates to human when replanning fails repeatedly by injecting a displayed message with structured suggestions (retry / skip tier / replan / abort) and pausing for user choice.
 
@@ -76,7 +76,7 @@ Last error: [error summary]
 Options: [1] Retry with same plan  [2] Skip tier and continue  [3] Full replan  [4] Abort project
 ```
 
-### Planner
+### **smn-Planner**
 Enforces PRD→Brainstorm→Design→Plan progression. Produces: (1) PRD, (2) design document (approved before proceeding), (3) full Mermaid diagram of entire pipeline, (4) per-tier contract files (JSON: tier name, receives_from, produces_for, checklist, diagram_ref), (5) coding-level task specs. Selects fastest commonly-used algorithms at spec stage. Identifies reusable modules to avoid duplication. No TBD sections in any output. Maintains MEMORY.md.
 
 **Spawn tool:** `somonnoy_spawn_planner`
@@ -84,7 +84,7 @@ Enforces PRD→Brainstorm→Design→Plan progression. Produces: (1) PRD, (2) de
 **Skills:** brainstorming (pi superpower)
 **MCP:** sequential-thinking (optional — if unavailable, performs explicit step-by-step reasoning natively before committing to any plan)
 
-### Scout
+### **smn-Scout**
 Stateless, on-demand only. Invoked by any agent needing external information (library docs, API references, research). Searches, writes structured result file, exits. No other agent carries search tools.
 
 **Spawn tool:** `somonnoy_spawn_scout`
@@ -92,7 +92,7 @@ Stateless, on-demand only. Invoked by any agent needing external information (li
 **Skills:** brave-search
 **MCP:** context7 (optional — if unavailable, works from training knowledge and flags potential staleness in result)
 
-### Coder
+### **smn-Coder**
 Leaf agent, stateless, one file per invocation, spawned fresh per task, parallelizable. Strictly follows:
 - Unix philosophy: one file, one job, done well
 - KISS: no over-engineering, no premature abstraction
@@ -102,22 +102,22 @@ Leaf agent, stateless, one file per invocation, spawned fresh per task, parallel
 - Intuitive naming: clear and descriptive, never bloated or abbreviated to obscurity
 - Fastest commonly-used algorithms as specified in task spec
 
-Runs compile/lint check after writing. Writes output to `coder_outputs/<task-id>.tmp` (never directly to tier directory — Integrator assembles).
+Runs compile/lint check after writing. Writes output to `coder_outputs/<task-id>.tmp` (never directly to tier directory — **smn-Integrator** assembles).
 
 **Spawn tool:** `somonnoy_spawn_coder`
 **Pi-native tools:** read, write, edit, bash, grep
 **Skills:** none
 **Timeout:** 300s default
-**Parallelism:** Multiple Coders can run concurrently for independent files within a tier. All parallel Coders receive identical system prompt structure for consistency.
+**Parallelism:** Multiple **smn-Coder**s can run concurrently for independent files within a tier. All parallel **smn-Coder**s receive identical system prompt structure for consistency.
 
-### Integrator
+### **smn-Integrator**
 One per tier. Consumes its scoped contract file (not the full diagram). Reads all `coder_outputs/<task-id>.tmp` files for the tier, assembles into final tier directory. Runs git diff and build check. Flags code duplication across assembled files. Ticks checklist items from contract. Writes status report upward. Sole writer to tier output directory.
 
 **Spawn tool:** `somonnoy_spawn_integrator`
 **Pi-native tools:** read, write, bash, grep, find
 **Skills:** none
 
-### Reviewer
+### **smn-Reviewer**
 Checks integrated tier output. Enforces: interface contracts, error handling, KISS compliance, algorithm efficiency, naming conventions, code reuse (no redundant implementations). Runs static analysis. Produces structured findings report. Never modifies source.
 
 **Spawn tool:** `somonnoy_spawn_reviewer`
@@ -136,9 +136,9 @@ Checks integrated tier output. Enforces: interface contracts, error handling, KI
   "suggested_action": "replan:coder:taskName|retry:coder:taskName|accept"
 }
 ```
-`suggested_action` is a hint only — Orchestrator/Planner decides. If Reviewer needs library context, it spawns Scout.
+`suggested_action` is a hint only — **smn-Orchestrator**/**smn-Planner** decides. If **smn-Reviewer** needs library context, it spawns **smn-Scout**.
 
-### Tester
+### **smn-Tester**
 Writes and runs tests per tier. Produces structured result file. Never modifies source (except test files).
 
 **Spawn tool:** `somonnoy_spawn_tester`
@@ -157,9 +157,9 @@ Writes and runs tests per tier. Produces structured result file. Never modifies 
   "suggested_action": "replan:coder:taskName|retry:coder:taskName|accept"
 }
 ```
-`suggested_action` is a hint only. If Tester needs library context, it spawns Scout.
+`suggested_action` is a hint only. If **smn-Tester** needs library context, it spawns **smn-Scout**.
 
-### Frontend Designer
+### **smn-Frontend Designer**
 Handles UI tasks at relevant tiers only. Produces interfaces that are slick, fast, and intuitive — prioritizes perceived performance, minimal cognitive load, clean visual hierarchy. Takes headless screenshot to verify render before reporting.
 
 **Spawn tool:** `somonnoy_spawn_frontend`
@@ -167,7 +167,7 @@ Handles UI tasks at relevant tiers only. Produces interfaces that are slick, fas
 **Skills:** frontend-design
 **MCP:** playwright (optional — if unavailable, skips visual verification step and notes in report that render was not verified)
 
-### Security Agent
+### **smn-Security Agent**
 Runs at key tier boundaries. Scans for vulnerabilities, auth flaws, exposed secrets. Read-only on source — produces findings report only, never modifies code.
 
 **Spawn tool:** `somonnoy_spawn_security`
@@ -192,17 +192,17 @@ Each agent is spawned as an in-memory `AgentSession` via pi's SDK (`createAgentS
 Extension (index.ts)
   │
   ├─ somonnoy_spawn_planner({ task, contract, ... })
-  │    └─ create AgentSession with Planner system prompt + tools
+  │    └─ create AgentSession with **smn-Planner** system prompt + tools
   │       └─ session.prompt(task) → collect output → dispose
   │
   ├─ somonnoy_spawn_coder({ task, filePath, specs, ... })
-  │    └─ create AgentSession with Coder system prompt + tools
+  │    └─ create AgentSession with **smn-Coder** system prompt + tools
   │       └─ session.prompt(task) → collect output → dispose
   │
   └─ ... (same pattern for all agents)
 ```
 
-**Constraint:** Each spawn tool creates exactly one agent session per invocation. One Coder = one file. Parallel Coders are multiple spawn tool calls.
+**Constraint:** Each spawn tool creates exactly one agent session per invocation. One **smn-Coder** = one file. Parallel **smn-Coder**s are multiple spawn tool calls.
 
 ## Lifecycle Management
 
@@ -211,14 +211,14 @@ The extension tracks all active agent sessions. Each spawn registers the session
 **Timeouts (default, configurable):**
 | Agent | Timeout |
 |-------|---------|
-| Planner | 600s |
-| Coder | 300s |
-| Integrator | 300s |
-| Reviewer | 300s |
-| Tester | 300s |
-| Scout | 120s |
-| Frontend Designer | 300s |
-| Security Agent | 300s |
+| **smn-Planner** | 600s |
+| **smn-Coder** | 300s |
+| **smn-Integrator** | 300s |
+| **smn-Reviewer** | 300s |
+| **smn-Tester** | 300s |
+| **smn-Scout** | 120s |
+| **smn-Frontend Designer** | 300s |
+| **smn-Security Agent** | 300s |
 
 **STATUS.md agent state format:**
 ```
@@ -237,17 +237,17 @@ Each file has exactly one writer agent type. No file locking needed.
 
 | File/Directory | Writer | Readers |
 |----------------|--------|---------|
-| `STATUS.md` | Orchestrator | All agents |
-| `MEMORY.md` | Planner | Extension (reads to filter + inject) |
-| `PRD.md` | Planner | Orchestrator, all agents |
-| `DESIGN.md` | Planner | Orchestrator, Integrator, Coder |
-| `DIAGRAM.md` (Mermaid) | Planner | Orchestrator, Integrator |
-| `contracts/<tier>.json` | Planner | Integrator (for that tier), Orchestrator |
-| `task-specs/<task>.json` | Planner | Coder (for that task), Reviewer, Tester |
-| `coder_outputs/<task-id>.tmp` | Coder | Integrator (reads, then deletes after assembly) |
-| `src/<tier>/*` (final code) | Integrator | Reviewer, Tester, Security Agent |
-| `tests/<tier>/*` | Tester | Reviewer |
-| `reports/<agent>-<tier>.json` | Reviewer, Tester, Security | Orchestrator, Planner |
+| `STATUS.md` | **smn-Orchestrator** | All agents |
+| `MEMORY.md` | **smn-Planner** | Extension (reads to filter + inject) |
+| `PRD.md` | **smn-Planner** | **smn-Orchestrator**, all agents |
+| `DESIGN.md` | **smn-Planner** | **smn-Orchestrator**, **smn-Integrator**, **smn-Coder** |
+| `DIAGRAM.md` (Mermaid) | **smn-Planner** | **smn-Orchestrator**, **smn-Integrator** |
+| `contracts/<tier>.json` | **smn-Planner** | **smn-Integrator** (for that tier), **smn-Orchestrator** |
+| `task-specs/<task>.json` | **smn-Planner** | **smn-Coder** (for that task), **smn-Reviewer**, **smn-Tester** |
+| `coder_outputs/<task-id>.tmp` | **smn-Coder** | **smn-Integrator** (reads, then deletes after assembly) |
+| `src/<tier>/*` (final code) | **smn-Integrator** | **smn-Reviewer**, **smn-Tester**, **smn-Security Agent** |
+| `tests/<tier>/*` | **smn-Tester** | **smn-Reviewer** |
+| `reports/<agent>-<tier>.json` | **smn-Reviewer**, **smn-Tester**, Security | **smn-Orchestrator**, **smn-Planner** |
 
 ### Contract File Format
 ```json
@@ -297,36 +297,36 @@ Each file has exactly one writer agent type. No file locking needed.
 }
 ```
 
-## Coding Standards (enforced by Coder + Reviewer)
+## Coding Standards (enforced by **smn-Coder** + **smn-Reviewer**)
 
 - Unix philosophy: one task, one file, done well
 - KISS: no over-engineering, no premature abstraction
-- Standard templates and maximum code reuse; Planner identifies reusable modules; Integrator flags duplication
+- Standard templates and maximum code reuse; **smn-Planner** identifies reusable modules; **smn-Integrator** flags duplication
 - Frontend: slick, fast, intuitive
 - Algorithms: fastest commonly-used; chosen at planning stage, enforced at review
 - Naming: intuitive and descriptive, never bloated or cryptically abbreviated
 
 ## Token Efficiency
 
-- Caveman compression on all inter-tier reports going upward (Reviewer, Tester, Integrator load caveman skill)
+- Caveman compression on all inter-tier reports going upward (**smn-Reviewer**, **smn-Tester**, **smn-Integrator** load caveman skill)
 - Each agent loads only its own relevant skills (enforced at spawn time)
 - SKILL.md files authored with caveman-compress for minimal token footprint
-- Parallel Coders receive identical system prompt structure for consistency
+- Parallel **smn-Coder**s receive identical system prompt structure for consistency
 - Each subagent session is in-memory — no session file I/O overhead
 
 ## Failure Handling
 
-- Reviewer and Tester produce structured failure metadata with `suggested_action` hint
+- **smn-Reviewer** and **smn-Tester** produce structured failure metadata with `suggested_action` hint
 - Failure metadata references contract file task IDs for precise replanning location
-- Orchestrator/Planner validates `suggested_action` before acting — agents never self-trigger replanning
-- Orchestrator escalates to human if replanning fails 3+ times on the same tier
+- **smn-Orchestrator**/**smn-Planner** validates `suggested_action` before acting — agents never self-trigger replanning
+- **smn-Orchestrator** escalates to human if replanning fails 3+ times on the same tier
   - Injects displayed message with structured options (retry / skip / replan / abort)
   - Pauses pipeline until user responds
 - All failures logged in STATUS.md with error summary and affected task IDs
 
 ## MEMORY.md Mechanism
 
-Planner maintains MEMORY.md with caveman-compressed lessons from failures. Format:
+**smn-Planner** maintains MEMORY.md with caveman-compressed lessons from failures. Format:
 
 ```markdown
 ## Lessons
@@ -356,10 +356,10 @@ The extension checks tool/skill/MCP availability once at agent spawn time. Resul
 Each agent's SKILL.md includes degradation instructions for each optional capability. If a capability is unavailable, the agent follows its degradation path rather than erroring out. Degradation is always explicit and reported in the agent's output.
 
 **Specific degradation paths:**
-- **Scout:** If brave-search unavailable, uses `web_search` (pi-native) as fallback. If context7 unavailable, works from training knowledge and flags potential staleness.
-- **Planner:** If sequential-thinking MCP unavailable, performs explicit step-by-step reasoning natively in output before committing to any plan.
-- **Frontend Designer:** If playwright MCP unavailable, skips visual verification step and notes in report that render was not verified.
-- **Security Agent:** If semgrep or trufflehog binary not found, skips that scan and flags the gap explicitly in findings. Never silently omits.
+- **smn-Scout**:** If brave-search unavailable, uses `web_search` (pi-native) as fallback. If context7 unavailable, works from training knowledge and flags potential staleness.
+- **smn-Planner**:** If sequential-thinking MCP unavailable, performs explicit step-by-step reasoning natively in output before committing to any plan.
+- **smn-Frontend Designer**:** If playwright MCP unavailable, skips visual verification step and notes in report that render was not verified.
+- **smn-Security Agent**:** If semgrep or trufflehog binary not found, skips that scan and flags the gap explicitly in findings. Never silently omits.
 
 No agent halts or errors due to a missing external tool.
 
@@ -367,6 +367,6 @@ No agent halts or errors due to a missing external tool.
 
 1. **Pi SDK usage:** Extension imports `createAgentSession`, `SessionManager`, `AuthStorage`, `ModelRegistry` from `@earendil-works/pi-coding-agent`. Spawned sessions are in-memory only (`SessionManager.inMemory()`).
 2. **Model selection:** Spawned subagents use the same model as the parent session by default. Configurable per agent type in settings.
-3. **Error isolation:** One Coder crash does not affect other parallel Coders. Integrator assembles whatever outputs are available.
-4. **Build verification:** Integrator runs `tsc --noEmit` (or equivalent) after assembly. If build fails, tier is marked blocked in STATUS.md.
-5. **Visual explainer:** Planner's Mermaid diagram is rendered using the visual-explainer skill for human review.
+3. **Error isolation:** One **smn-Coder** crash does not affect other parallel **smn-Coder**s. **smn-Integrator** assembles whatever outputs are available.
+4. **Build verification:** **smn-Integrator** runs `tsc --noEmit` (or equivalent) after assembly. If build fails, tier is marked blocked in STATUS.md.
+5. **Visual explainer:** **smn-Planner**'s Mermaid diagram is rendered using the visual-explainer skill for human review.

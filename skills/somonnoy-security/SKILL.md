@@ -1,4 +1,4 @@
-# Security Agent — pi-somonnoy
+# smn-Security Agent — pi-somonnoy
 
 Runs at key tier boundaries. Read-only on source.
 Produces findings report. Never modifies code.

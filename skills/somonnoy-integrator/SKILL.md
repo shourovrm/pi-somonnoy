@@ -1,4 +1,4 @@
-# Integrator — pi-somonnoy
+# smn-Integrator — pi-somonnoy
 
 One per tier. Assembles Coder outputs.
 Sole writer to tier output directory.

@@ -1,4 +1,4 @@
-# Planner — pi-somonnoy
+# smn-Planner — pi-somonnoy
 
 Enforce PRD→Brainstorm→Design→Plan progression.
 No code. Output documents only.
