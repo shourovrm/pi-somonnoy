@@ -27,11 +27,17 @@ No file locking needed.
 Extension checks MCP/binary availability once per agent spawn, passes `## Available Capabilities` block in system prompt. Agent SKILL.md has degradation instructions. Flags: sequential_thinking_mcp, playwright_mcp, brave_search_skill, context7_mcp, semgrep_binary, trufflehog_binary.
 
 ## Current State
-- **Done:** Extension code, all 9 SKILL.md files, package.json, prompt.md (revised), STATUS.md
-- **Pending:** Integration testing, frontend/security spawn tools, plan parsing validation, caveman compression of skills
-- **Phase:** Core built, needs end-to-end test
+- **Done:** Extension code, all 9 SKILL.md files, package.json, prompt.md (revised), STATUS.md, per-agent model routing
+- **Pending:** Integration testing, plan parsing validation, caveman compression of skills
+- **Phase:** Core built + bugfixes, ready for end-to-end test
 
 ## Gotchas
+
+### `__dirname` in tsx ESM is `.` (not extension dir)
+Fixed: use `path.dirname(fileURLToPath(import.meta.url))` → `EXT_DIR`. All skill/file path resolution uses `EXT_DIR` instead of `__dirname`. Without this fix, skills silently fail to load (catch returns empty string).
+
+### Model IDs need provider prefix (`opencode-go/`)
+`pi --model` expects `provider/model-id`. Bare names like `glm-5.1` resolve to wrong provider (`opencode` instead of `opencode-go`) → API key missing → crash. All `AGENT_MODELS` and `DEFAULT_MODEL` use full `opencode-go/*` format.
 
 ### `checkBinary()` is optimistic
 Spawns `which` but doesn't wait for exit code. Returns true if spawn doesn't throw. Fast enough for capability check but not rigorous. Acceptable — capability flags are informational, agents degrade gracefully anyway.

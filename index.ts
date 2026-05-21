@@ -9,9 +9,13 @@ import { execSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Key, matchesKey, truncateToWidth } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
+
+// ── Extension directory (ESM-safe __dirname equivalent) ──
+const EXT_DIR = path.dirname(fileURLToPath(import.meta.url));
 
 // ═══════════════════════════════════════════
 // Types
@@ -62,18 +66,18 @@ interface SomonnoyState {
 const SESSION_KEY = "pi-somonnoy";
 const STATUS_FILE = "STATUS.md";
 const MEMORY_FILE = "MEMORY.md";
-const DEFAULT_MODEL = "deepseek-v4-pro";
+const DEFAULT_MODEL = "opencode-go/deepseek-v4-pro";
 
-// ── Per-agent model selection ──
+// ── Per-agent model selection (provider-prefixed) ──
 const AGENT_MODELS: Record<string, string> = {
-  "smn-planner": "glm-5.1",
-  "smn-integrator": "glm-5.1",
-  "smn-security": "glm-5.1",
-  "smn-coder": "qwen3.6-plus",
-  "smn-tester": "qwen3.6-plus",
-  "smn-frontend": "kimi-k2.6",
-  "smn-reviewer": "kimi-k2.6",
-  "smn-scout": "deepseek-v4-flash",
+  "smn-planner": "opencode-go/glm-5.1",
+  "smn-integrator": "opencode-go/glm-5.1",
+  "smn-security": "opencode-go/glm-5.1",
+  "smn-coder": "opencode-go/qwen3.6-plus",
+  "smn-tester": "opencode-go/qwen3.6-plus",
+  "smn-frontend": "opencode-go/kimi-k2.6",
+  "smn-reviewer": "opencode-go/kimi-k2.6",
+  "smn-scout": "opencode-go/deepseek-v4-flash",
 };
 
 let state: SomonnoyState | null = null;
@@ -156,7 +160,7 @@ const AGENT_CONFIGS: Record<string, AgentConfig> = {
 
 function loadSkillFile(agentType: string): string {
   const cleanName = agentType.replace(/^smn-/, "");
-  const skillPath = path.join(__dirname, "skills", `somonnoy-${cleanName}`, "SKILL.md");
+  const skillPath = path.join(EXT_DIR, "skills", `somonnoy-${cleanName}`, "SKILL.md");
   try {
     return fs.readFileSync(skillPath, "utf-8");
   } catch {

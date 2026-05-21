@@ -6,7 +6,7 @@
 
 | Component | File | Status | Notes |
 |-----------|------|--------|-------|
-| Extension core | `index.ts` (~1020L) | ✅ Done | Commands, tools, spawner, dashboard, lifecycle, git auto-commit, per-agent model selection |
+| Extension core | `index.ts` (~1030L) | ✅ Done | Commands, tools, spawner, dashboard, lifecycle, git auto-commit, per-agent model selection, ESM skill path fix, provider-prefixed model IDs |
 | Package manifest | `package.json` | ✅ Done | Pi package metadata |
 | Spec (revised) | `prompt.md` | ✅ Done | 11 loopholes addressed, pi-native rewrite |
 | Original spec backup | `prompt.original.md` | ✅ Done | For reference |
@@ -51,6 +51,8 @@
 - [x] Give coder + frontend context7_get_library_docs (curated docs, no open web)
 - [x] Pre-fetch research: scanForDependencies() → spawn scout → inject into agent prompts
 - [x] Per-agent model selection (AGENT_MODELS map, model override in spawnPiAgent)
+- [x] Fix: ESM `__dirname` → `EXT_DIR` via `fileURLToPath(import.meta.url)` — skills now load correctly
+- [x] Fix: Model IDs prefixed with `opencode-go/` — bare names caused wrong provider → API key missing crash
 - [ ] Integration test: run `/somonnoy "build a simple CLI tool"` end-to-end
 - [ ] Verify prompt.md → SKILL.md transfer completeness
 - [ ] Test MCP capability flag detection (sequential-thinking, playwright, context7)
