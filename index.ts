@@ -91,7 +91,7 @@ const AGENT_CONFIGS: Record<string, AgentConfig> = {
   coder: {
     name: "coder",
     description: "Leaf agent. One file per invocation. KISS, Unix philosophy, max reuse.",
-    tools: ["read", "write", "edit", "bash", "grep"],
+    tools: ["read", "write", "edit", "bash", "grep", "context7_get_library_docs"],
     skills: [],
     systemPrompt: "",
     timeout: 300_000,
@@ -123,7 +123,7 @@ const AGENT_CONFIGS: Record<string, AgentConfig> = {
   frontend: {
     name: "frontend",
     description: "Handles UI tasks. Slick, fast, intuitive interfaces.",
-    tools: ["read", "write", "edit", "bash", "grep"],
+    tools: ["read", "write", "edit", "bash", "grep", "context7_get_library_docs"],
     skills: ["frontend-design"],
     systemPrompt: "",
     timeout: 300_000,

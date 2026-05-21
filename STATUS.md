@@ -13,11 +13,11 @@
 | Orchestrator skill | `skills/somonnoy-orchestrator/SKILL.md` | ✅ Done | 33 lines, caps flag + constraints |
 | Planner skill | `skills/somonnoy-planner/SKILL.md` | ✅ Done | 41 lines, MEMORY.md format, degradation |
 | Scout skill | `skills/somonnoy-scout/SKILL.md` | ✅ Done | 26 lines, degradation paths |
-| Coder skill | `skills/somonnoy-coder/SKILL.md` | ✅ Done | 26 lines, KISS + Unix standards |
+| Coder skill | `skills/somonnoy-coder/SKILL.md` | ✅ Done | 26 lines, KISS + Unix standards, context7 access |
 | Integrator skill | `skills/somonnoy-integrator/SKILL.md` | ✅ Done | 25 lines, single-writer pattern |
 | Reviewer skill | `skills/somonnoy-reviewer/SKILL.md` | ✅ Done | 33 lines, JSON report format |
 | Tester skill | `skills/somonnoy-tester/SKILL.md` | ✅ Done | 35 lines, JSON report format |
-| Frontend skill | `skills/somonnoy-frontend/SKILL.md` | ✅ Done | 25 lines, Playwright degradation, wired into pipeline |
+| Frontend skill | `skills/somonnoy-frontend/SKILL.md` | ✅ Done | 25 lines, Playwright degradation, wired into pipeline, context7 access |
 | Security skill | `skills/somonnoy-security/SKILL.md` | ✅ Done | 33 lines, Semgrep/Trufflehog degradation, wired into pipeline |
 | MEMORY.md | `MEMORY.md` | ✅ Updated | Architecture decisions + gotchas + git strategy |
 
@@ -48,6 +48,7 @@
 - [x] Register somonnoy_spawn_frontend + somonnoy_spawn_security tools
 - [x] Wire frontend agent into pipeline (UI file detection → route to frontend)
 - [x] Wire security agent into pipeline (scanning phase after integration)
+- [x] Give coder + frontend context7_get_library_docs (curated docs, no open web)
 - [ ] Integration test: run `/somonnoy "build a simple CLI tool"` end-to-end
 - [ ] Verify prompt.md → SKILL.md transfer completeness
 - [ ] Test MCP capability flag detection (sequential-thinking, playwright, context7)
