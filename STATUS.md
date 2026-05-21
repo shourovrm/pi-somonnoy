@@ -49,6 +49,7 @@
 - [x] Wire frontend agent into pipeline (UI file detection → route to frontend)
 - [x] Wire security agent into pipeline (scanning phase after integration)
 - [x] Give coder + frontend context7_get_library_docs (curated docs, no open web)
+- [x] Pre-fetch research: scanForDependencies() → spawn scout → inject into agent prompts
 - [ ] Integration test: run `/somonnoy "build a simple CLI tool"` end-to-end
 - [ ] Verify prompt.md → SKILL.md transfer completeness
 - [ ] Test MCP capability flag detection (sequential-thinking, playwright, context7)

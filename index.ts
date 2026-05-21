@@ -546,6 +546,20 @@ async function runOrchestrator(
       tier.status = "coding";
       updateDashboard(ctx);
 
+      // Pre-fetch research for unfamiliar dependencies (20% case)
+      const deps = scanForDependencies(tier.agents);
+      let researchContext = "";
+      if (deps.length > 0) {
+        const scoutResult = await spawnPiAgent("scout",
+          `# Scout Research\n\nTier: ${tier.tier}\nResearch: ${deps.join(", ")}. Find API references, usage examples, gotchas for ${tier.tier} implementation. Write structured report.`,
+          cwd, model, signal);
+        if (scoutResult.exitCode === 0 && scoutResult.output) {
+          researchContext = `\n\n## Research Context (pre-fetched by Scout)\n${scoutResult.output.slice(0, 3000)}\n`;
+        }
+        state.completedAgents++;
+        if (scoutResult.exitCode !== 0) state.failedAgents++;
+      }
+
       for (const agent of tier.agents) {
         if (agent.agent !== "coder") continue;
 
@@ -557,8 +571,8 @@ async function runOrchestrator(
         updateDashboard(ctx);
 
         const taskPrompt = useFrontend
-          ? `# Frontend Task\n\nTier: ${tier.tier}\nFile: ${agent.id}\nTask: ${agent.task}\n\nWrite UI code to ${agent.id}. Prioritize perceived performance, minimal cognitive load, clean visual hierarchy. Use frontend-design skill. Take screenshot if Playwright available.`
-          : `# Coder Task\n\nTier: ${tier.tier}\nFile: ${agent.id}\nTask: ${agent.task}\n\nWrite code to ${agent.id}. Follow KISS, Unix philosophy. Max code reuse. Compile check after writing.`;
+          ? `# Frontend Task\n\nTier: ${tier.tier}\nFile: ${agent.id}\nTask: ${agent.task}\n\nWrite UI code to ${agent.id}. Prioritize perceived performance, minimal cognitive load, clean visual hierarchy. Use frontend-design skill. Take screenshot if Playwright available.${researchContext}`
+          : `# Coder Task\n\nTier: ${tier.tier}\nFile: ${agent.id}\nTask: ${agent.task}\n\nWrite code to ${agent.id}. Follow KISS, Unix philosophy. Max code reuse. Compile check after writing.${researchContext}`;
 
         agent.result = await spawnPiAgent(agentType, taskPrompt, cwd, model, signal);
         agent.status = agent.result.exitCode === 0 ? "done" : "failed";
@@ -712,6 +726,24 @@ function isUiFilePath(filePath: string): boolean {
     /components?\//i, /pages?\//i, /views?\//i, /layouts?\//i,
   ];
   return uiPatterns.some((p) => p.test(filePath));
+}
+
+function scanForDependencies(agents: AgentRunState[]): string[] {
+  // Match patterns like: "uses Stripe SDK", "integrate with SendGrid", "using redis",
+  // "leverage X", "library: Y", or bare capitalized library names in task descriptions
+  const depRegex = /(?:uses?|integrate(?:s|d)?\s+(?:with)?|using|leveraging?|library[:\s]+|framework[:\s]+|sdk[:\s]+|api[:\s]+)\s*["']?([A-Z][a-zA-Z0-9.\-_]{2,30}(?:\s+[A-Z][a-zA-Z0-9.\-_]{2,20}){0,2})["']?/gi;
+  const deps = new Set<string>();
+  for (const agent of agents) {
+    if (agent.agent !== "coder") continue;
+    let match;
+    while ((match = depRegex.exec(agent.task)) !== null) {
+      deps.add(match[1].trim().toLowerCase());
+    }
+    // Also check file path for library hints in import-like paths
+    const importHints = agent.id.match(/@[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+/g);
+    if (importHints) importHints.forEach((h) => deps.add(h.toLowerCase()));
+  }
+  return [...deps].slice(0, 5); // max 5 unique deps per tier
 }
 
 function commitTier(tierName: string, cwd: string): string | null {

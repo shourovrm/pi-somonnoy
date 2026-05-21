@@ -55,7 +55,7 @@ Coding phase detects UI files via `isUiFilePath()` — checks file extension (.t
 Security scan runs after integration, before review (read-only phase). Spawns `"security"` agent per tier. Tier status set to `"scanning"` during this phase. Added to `TierState` union type. Runs Semgrep + Trufflehog if binaries available; gracefully skips if not.
 
 ### Agent research: context7, not web_search and not callback
-Subprocess agents can't call custom tools (somonnoy_spawn_scout) — only pi-native tools work with `--tools` flag. Coder + frontend get `context7_get_library_docs` (curated library docs, not open web). Scout stays specialized for orchestrator use when MCP-powered research needed. Pre-fetch pattern available for complex research needs: orchestrator spawns scout before tier, injects findings into agent prompts.
+Subprocess agents can't call custom tools (somonnoy_spawn_scout) — only pi-native tools work with `--tools` flag. Coder + frontend get `context7_get_library_docs` (curated library docs, not open web). Scout stays specialized for orchestrator use when MCP-powered research needed. Pre-fetch pattern implemented: `scanForDependencies()` scans task descriptions for "uses X", "integrate with Y", imports — spawns scout before coding phase, injects structured findings (trimmed to 3000 chars) into each agent's task prompt under `## Research Context`. Scout failure is non-fatal — agents proceed with training knowledge only.
 
 ### Git auto-commit per tier (Point D gate)
 After both Reviewer and Tester pass for a tier, extension runs:
