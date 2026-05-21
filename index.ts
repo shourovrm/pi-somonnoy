@@ -62,7 +62,19 @@ interface SomonnoyState {
 const SESSION_KEY = "pi-somonnoy";
 const STATUS_FILE = "STATUS.md";
 const MEMORY_FILE = "MEMORY.md";
-const DEFAULT_MODEL = "claude-sonnet-4-5";
+const DEFAULT_MODEL = "deepseek-v4-pro";
+
+// ── Per-agent model selection ──
+const AGENT_MODELS: Record<string, string> = {
+  "smn-planner": "glm-5.1",
+  "smn-integrator": "glm-5.1",
+  "smn-security": "glm-5.1",
+  "smn-coder": "qwen3.6-plus",
+  "smn-tester": "qwen3.6-plus",
+  "smn-frontend": "kimi-k2.6",
+  "smn-reviewer": "kimi-k2.6",
+  "smn-scout": "deepseek-v4-flash",
+};
 
 let state: SomonnoyState | null = null;
 let dashboardWidget: (() => void) | null = null;
@@ -243,6 +255,7 @@ async function spawnPiAgent(
 
   const startedAt = Date.now();
   const systemPrompt = buildSystemPrompt(agentType);
+  const agentModel = AGENT_MODELS[agentType] ?? model; // per-agent override, fallback to orchestrator default
 
   // Write system prompt to temp file
   const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "pi-somonnoy-"));
@@ -253,7 +266,7 @@ async function spawnPiAgent(
     "--mode", "json",
     "-p",
     "--no-session",
-    "--model", model,
+    "--model", agentModel,
     "--tools", config.tools.join(","),
     "--append-system-prompt", promptFile,
   ];

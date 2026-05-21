@@ -1,12 +1,12 @@
 # pi-somonnoy — Project Status
 
-**Phase:** Extension built, ready for testing  |  **Date:** 2026-05-21
+**Phase:** Per-agent model selection added  |  **Date:** 2026-05-21
 
 ## Components
 
 | Component | File | Status | Notes |
 |-----------|------|--------|-------|
-| Extension core | `index.ts` (~900L) | ✅ Done | Commands, tools, spawner, dashboard, lifecycle, git auto-commit |
+| Extension core | `index.ts` (~1020L) | ✅ Done | Commands, tools, spawner, dashboard, lifecycle, git auto-commit, per-agent model selection |
 | Package manifest | `package.json` | ✅ Done | Pi package metadata |
 | Spec (revised) | `prompt.md` | ✅ Done | 11 loopholes addressed, pi-native rewrite |
 | Original spec backup | `prompt.original.md` | ✅ Done | For reference |
@@ -19,7 +19,7 @@
 | smn-Tester skill | `skills/somonnoy-tester/SKILL.md` | ✅ Done | 35 lines, JSON report format |
 | smn-Frontend skill | `skills/somonnoy-frontend/SKILL.md` | ✅ Done | 25 lines, Playwright degradation, wired into pipeline, context7 access |
 | smn-Security skill | `skills/somonnoy-security/SKILL.md` | ✅ Done | 33 lines, Semgrep/Trufflehog degradation, wired into pipeline |
-| MEMORY.md | `MEMORY.md` | ✅ Updated | Architecture decisions + gotchas + git strategy |
+| MEMORY.md | `MEMORY.md` | ✅ Updated | Architecture decisions + gotchas + git strategy + model routing |
 
 ## Commands
 
@@ -50,6 +50,7 @@
 - [x] Wire security agent into pipeline (scanning phase after integration)
 - [x] Give coder + frontend context7_get_library_docs (curated docs, no open web)
 - [x] Pre-fetch research: scanForDependencies() → spawn scout → inject into agent prompts
+- [x] Per-agent model selection (AGENT_MODELS map, model override in spawnPiAgent)
 - [ ] Integration test: run `/somonnoy "build a simple CLI tool"` end-to-end
 - [ ] Verify prompt.md → SKILL.md transfer completeness
 - [ ] Test MCP capability flag detection (sequential-thinking, playwright, context7)
@@ -57,8 +58,6 @@
 - [ ] Test dashboard widget rendering with real agent runs
 - [ ] Test escalation prompt when replan fails 3x
 - [ ] Test MEMORY.md filtering by agent tag
-- [ ] Add `somonnoy_spawn_frontend` and `somonnoy_spawn_security` tools to index.ts
 - [ ] Test plan parsing (parseTiersFromPlan) with real smn-Planner output
-- [ ] Install as pi package and verify /reload discovery
 - [ ] Write caveman-compressed versions of all SKILL.md files
 - [ ] Add `agents/` directory with agent definitions (currently inline)

@@ -74,3 +74,20 @@ git add . && git commit -m "feat(<tier-slug>): implement <tier> tier"
 - Should agent timeouts be configurable per project?
 - How to handle tier-level frontend tasks (integrated into smn-Coder or separate smn-Frontend agent)?
 - Should pipeline support parallel tiers (independent modules)?
+
+## Model Routing (2026-05-21)
+Per-agent model selection via `AGENT_MODELS` map. `spawnPiAgent()` resolves `AGENT_MODELS[agentType]` with fallback to `DEFAULT_MODEL` (orchestrator model).
+
+| Agent | Model | Rationale |
+|-------|-------|----------|
+| smn-planner | glm-5.1 | Structured docs, strong agentic reasoning |
+| smn-integrator | glm-5.1 | Assembly + dedup, same reasoning needs |
+| smn-security | glm-5.1 | Pattern matching + auth logic review |
+| smn-coder | qwen3.6-plus | 1M context, strong code gen, explicit CoT |
+| smn-tester | qwen3.6-plus | Same reasoning strength, needs code understanding |
+| smn-frontend | kimi-k2.6 | UI/visual tasks, 262K context sufficient |
+| smn-reviewer | kimi-k2.6 | Critical analysis, contract checking |
+| smn-scout | deepseek-v4-flash | Fast + cheap research, no deep reasoning needed |
+| smn-orchestrator | deepseek-v4-pro | Pipeline coordination (DEFAULT_MODEL fallback) |
+
+**Cost rationale:** Planner/Integrator/Security use glm-5.1 (free/cheap). Coder/Tester use qwen3.6-plus ($1.95/M output). Scout uses flash ($0.28/M output). Only orchestrator uses pro. Balances quality vs cost across 8+ agent invocations per tier.
