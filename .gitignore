@@ -1,0 +1,24 @@
+# pi-somonnoy — Git Ignore
+
+# Dependencies
+node_modules/
+
+# Pi local state (session data, superpowers)
+.pi/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+
+# Temp files
+*.tmp
+*.log
+
+# Environment
+.env
+.env.local

@@ -1,0 +1,14 @@
+{
+  "name": "pi-somonnoy",
+  "version": "0.1.0",
+  "description": "Multi-agent coding orchestration extension for pi — gated PRD→Brainstorm→Design→Plan→Implement→Review pipeline",
+  "pi": {
+    "extensions": ["./index.ts"]
+  },
+  "dependencies": {
+    "typebox": "^0.0.0"
+  },
+  "keywords": ["pi-extension", "multi-agent", "orchestration", "coding-agent"],
+  "author": "",
+  "license": "MIT"
+}
